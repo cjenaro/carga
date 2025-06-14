@@ -1,0 +1,108 @@
+# Carga - SQLite Active Record ORM 📦
+
+You are working on **Carga**, the SQLite ORM with Active Record patterns for the Foguete framework.
+
+## Package Purpose
+Carga provides an Active Record-style ORM for SQLite database operations with a Rails-like API.
+
+## Key Responsibilities
+- SQLite database connection management
+- Active Record model patterns
+- Query building and execution
+- Schema migrations
+- Model relationships (belongs_to, has_many, etc.)
+- Data validation and callbacks
+- Connection pooling
+
+## Core APIs
+- `Model:create(attributes)` - Create new record
+- `Model:find(id)` - Find record by primary key
+- `Model:find_by(conditions)` - Find record by conditions
+- `Model:where(conditions)` - Build query with conditions
+- `Model:all()` - Get all records
+- `Model:save()` - Save record to database
+- `Model:destroy()` - Delete record
+- `Model:update(attributes)` - Update record
+
+## Model Definition Pattern
+```lua
+local User = carga.Model:extend("User")
+
+User.table_name = "users"
+User.fields = {
+    id = { type = "integer", primary_key = true },
+    name = { type = "text", required = true },
+    email = { type = "text", unique = true },
+    created_at = { type = "datetime", default = "now" }
+}
+
+function User:validate()
+    if not self.email:match("@") then
+        self:add_error("email", "must be valid")
+    end
+end
+
+return User
+```
+
+## Relationships
+```lua
+-- In User model
+User.has_many = { "posts" }
+User.belongs_to = { "company" }
+
+-- In Post model  
+Post.belongs_to = { "user" }
+Post.has_many = { "comments" }
+```
+
+## Query Building
+```lua
+-- Chainable queries
+User:where({ active = true })
+    :order("created_at DESC")
+    :limit(10)
+    :all()
+
+-- Raw SQL when needed
+User:query("SELECT * FROM users WHERE name LIKE ?", { "%john%" })
+```
+
+## Migration Support
+```lua
+-- Migration file: db/migrate/001_create_users.lua
+return {
+    up = function(db)
+        db:create_table("users", {
+            id = "integer primary key",
+            name = "text not null",
+            email = "text unique",
+            created_at = "datetime default current_timestamp"
+        })
+    end,
+    
+    down = function(db)
+        db:drop_table("users")
+    end
+}
+```
+
+## Coding Guidelines
+- Use prepared statements for all queries
+- Implement proper SQL injection protection
+- Support database transactions
+- Use connection pooling for concurrent access
+- Implement lazy loading for relationships
+- Support both sync and async operations with coroutines
+
+## Testing Requirements
+- Test all CRUD operations
+- Verify relationship loading
+- Test validation rules
+- Test migration up/down
+- Benchmark query performance
+- Test concurrent access patterns
+
+## Dependencies
+- SQLite3 (via luasql-sqlite3 or ffi)
+- Pure Lua where possible 
