@@ -1,6 +1,7 @@
 -- Base Model class implementing Active Record pattern
 local Database = require("carga.src.database")
 local QueryBuilder = require("carga.src.query_builder")
+local Associations = require("carga.src.associations")
 
 local Model = {}
 Model.__index = Model
@@ -50,6 +51,24 @@ function Model:new(attributes)
             -- Check for attribute first
             if rawget(t, "_attributes") and rawget(t, "_attributes")[key] ~= nil then
                 return rawget(t, "_attributes")[key]
+            end
+            
+            -- Check for cached association
+            local cached_key = "_" .. key
+            if rawget(t, cached_key) ~= nil then
+                return rawget(t, cached_key)
+            end
+            
+            -- Check for association
+            local association = Associations.get_association(self, key)
+            if association then
+                if association.type == Associations.BELONGS_TO then
+                    return t:get_belongs_to_association(key)
+                elseif association.type == Associations.HAS_MANY then
+                    return t:get_has_many_association(key)
+                elseif association.type == Associations.HAS_ONE then
+                    return t:get_has_one_association(key)
+                end
             end
             
             -- Then check the class for methods
@@ -418,6 +437,10 @@ function Model:group(columns)
     return QueryBuilder.new(self):group(columns)
 end
 
+function Model:includes(associations)
+    return QueryBuilder.new(self):includes(associations)
+end
+
 function Model:create(attributes)
     local instance = self:new(attributes)
     if instance:save() then
@@ -446,59 +469,55 @@ function Model:get_model_class(class_name)
     return model_registry[class_name]
 end
 
--- Association methods
+-- Association definition methods
+function Model:belongs_to(association_name, options)
+    Associations.register(self, Associations.BELONGS_TO, association_name, options)
+end
+
+function Model:has_many(association_name, options)
+    Associations.register(self, Associations.HAS_MANY, association_name, options)
+end
+
+function Model:has_one(association_name, options)
+    Associations.register(self, Associations.HAS_ONE, association_name, options)
+end
+
+-- Association loading methods
 function Model:get_belongs_to_association(association_name)
-    local foreign_key = association_name .. "_id"
-    local foreign_id = self:get_attribute(foreign_key)
-    
-    if not foreign_id then
-        return nil
+    -- Check if already loaded
+    local cached_key = "_" .. association_name
+    if self[cached_key] ~= nil then
+        return self[cached_key]
     end
     
-    local model_class_name = association_name:gsub("^%l", string.upper)
-    local model_class = self:get_model_class(model_class_name)
-    
-    if model_class then
-        return model_class:find(foreign_id)
-    end
-    
-    return nil
+    local result = Associations.load_belongs_to(self, association_name)
+    self[cached_key] = result
+    return result
 end
 
 function Model:get_has_many_association(association_name)
-    local foreign_key = string.lower(self.class_name) .. "_id"
-    local my_id = self:get_attribute(self.primary_key)
-    
-    if not my_id then
-        return QueryBuilder.new(self):where("1=0")
+    -- Check if already loaded
+    local cached_key = "_" .. association_name
+    if self[cached_key] ~= nil then
+        return self[cached_key]
     end
     
-    local model_class_name = association_name:gsub("s$", ""):gsub("^%l", string.upper)
-    local model_class = self:get_model_class(model_class_name)
-    
-    if model_class then
-        return model_class:where({ [foreign_key] = my_id })
-    end
-    
-    return QueryBuilder.new(self):where("1=0")
+    -- Return association proxy for lazy loading
+    local proxy = Associations.AssociationProxy.new(self, association_name)
+    self[cached_key] = proxy
+    return proxy
 end
 
 function Model:get_has_one_association(association_name)
-    local foreign_key = string.lower(self.class_name) .. "_id"
-    local my_id = self:get_attribute(self.primary_key)
-    
-    if not my_id then
-        return nil
+    -- Check if already loaded
+    local cached_key = "_" .. association_name
+    if self[cached_key] ~= nil then
+        return self[cached_key]
     end
     
-    local model_class_name = association_name:gsub("^%l", string.upper)
-    local model_class = self:get_model_class(model_class_name)
-    
-    if model_class then
-        return model_class:find_by({ [foreign_key] = my_id })
-    end
-    
-    return nil
+    local result = Associations.load_has_one(self, association_name)
+    self[cached_key] = result
+    return result
 end
 
 return Model

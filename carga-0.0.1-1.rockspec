@@ -24,6 +24,7 @@ build = {
       ["carga"] = "src/init.lua",
       ["carga.src.database"] = "src/database.lua",
       ["carga.src.model"] = "src/model.lua",
-      ["carga.src.query_builder"] = "src/query_builder.lua"
+      ["carga.src.query_builder"] = "src/query_builder.lua",
+      ["carga.src.associations"] = "src/associations.lua"
    }
 }

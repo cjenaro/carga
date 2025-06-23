@@ -1,5 +1,6 @@
 -- Query Builder for constructing SQL queries
 local Database = require("carga.src.database")
+local Associations = require("carga.src.associations")
 
 local QueryBuilder = {}
 QueryBuilder.__index = QueryBuilder
@@ -17,7 +18,8 @@ function QueryBuilder.new(model_class)
         having_clauses = {},
         limit_value = nil,
         offset_value = nil,
-        params = {}
+        params = {},
+        includes_list = {}
     }, QueryBuilder)
     
     return builder
@@ -56,6 +58,12 @@ function QueryBuilder:clone()
     
     new_builder.limit_value = self.limit_value
     new_builder.offset_value = self.offset_value
+    
+    -- Copy includes list
+    new_builder.includes_list = {}
+    for _, include in ipairs(self.includes_list) do
+        table.insert(new_builder.includes_list, include)
+    end
     
     return new_builder
 end
@@ -185,6 +193,21 @@ function QueryBuilder:offset(count)
     return builder
 end
 
+-- INCLUDES clause for eager loading
+function QueryBuilder:includes(associations)
+    local builder = self:clone()
+    
+    if type(associations) == "string" then
+        table.insert(builder.includes_list, associations)
+    elseif type(associations) == "table" then
+        for _, association in ipairs(associations) do
+            table.insert(builder.includes_list, association)
+        end
+    end
+    
+    return builder
+end
+
 -- Build SELECT SQL
 function QueryBuilder:to_sql()
     local sql_parts = { "SELECT " .. self.select_clause }
@@ -239,6 +262,11 @@ function QueryBuilder:all()
         local instance = self.model_class:new(row)
         instance._persisted = true
         table.insert(instances, instance)
+    end
+    
+    -- Eager load associations if specified
+    if #self.includes_list > 0 then
+        Associations.eager_load(instances, self.includes_list)
     end
     
     return instances
