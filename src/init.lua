@@ -10,11 +10,13 @@ carga.VERSION = "0.0.1"
 local Database = require("carga.src.database")
 local Model = require("carga.src.model")
 local QueryBuilder = require("carga.src.query_builder")
+local Migration = require("carga.src.migration")
 
 -- Export main components
 carga.Database = Database
 carga.Model = Model
 carga.QueryBuilder = QueryBuilder
+carga.Migration = Migration
 
 -- Configuration
 local config = {

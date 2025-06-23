@@ -146,6 +146,28 @@ function QueryBuilder:left_joins(table_name, condition)
     return builder
 end
 
+-- RIGHT JOIN clause
+function QueryBuilder:right_joins(table_name, condition)
+    local builder = self:clone()
+    condition = condition or (self.table_name .. ".id = " .. table_name .. "." .. self.table_name:sub(1, -2) .. "_id")
+    table.insert(builder.join_clauses, "RIGHT JOIN " .. table_name .. " ON " .. condition)
+    return builder
+end
+
+-- INNER JOIN with explicit condition
+function QueryBuilder:inner_join(table_name, condition)
+    local builder = self:clone()
+    table.insert(builder.join_clauses, "INNER JOIN " .. table_name .. " ON " .. condition)
+    return builder
+end
+
+-- LEFT JOIN with explicit condition
+function QueryBuilder:left_join(table_name, condition)
+    local builder = self:clone()
+    table.insert(builder.join_clauses, "LEFT JOIN " .. table_name .. " ON " .. condition)
+    return builder
+end
+
 -- ORDER BY clause
 function QueryBuilder:order(column, direction)
     local builder = self:clone()
@@ -205,6 +227,83 @@ function QueryBuilder:includes(associations)
         end
     end
     
+    return builder
+end
+
+-- WHERE IN clause
+function QueryBuilder:where_in(column, values)
+    local builder = self:clone()
+    
+    if #values == 0 then
+        table.insert(builder.where_conditions, "1=0")
+        return builder
+    end
+    
+    local placeholders = {}
+    for _, value in ipairs(values) do
+        table.insert(placeholders, "?")
+        table.insert(builder.params, value)
+    end
+    
+    table.insert(builder.where_conditions, column .. " IN (" .. table.concat(placeholders, ", ") .. ")")
+    return builder
+end
+
+-- WHERE NOT IN clause
+function QueryBuilder:where_not_in(column, values)
+    local builder = self:clone()
+    
+    if #values == 0 then
+        return builder
+    end
+    
+    local placeholders = {}
+    for _, value in ipairs(values) do
+        table.insert(placeholders, "?")
+        table.insert(builder.params, value)
+    end
+    
+    table.insert(builder.where_conditions, column .. " NOT IN (" .. table.concat(placeholders, ", ") .. ")")
+    return builder
+end
+
+-- WHERE BETWEEN clause
+function QueryBuilder:where_between(column, min_value, max_value)
+    local builder = self:clone()
+    table.insert(builder.where_conditions, column .. " BETWEEN ? AND ?")
+    table.insert(builder.params, min_value)
+    table.insert(builder.params, max_value)
+    return builder
+end
+
+-- WHERE LIKE clause
+function QueryBuilder:where_like(column, pattern)
+    local builder = self:clone()
+    table.insert(builder.where_conditions, column .. " LIKE ?")
+    table.insert(builder.params, pattern)
+    return builder
+end
+
+-- WHERE IS NULL clause
+function QueryBuilder:where_null(column)
+    local builder = self:clone()
+    table.insert(builder.where_conditions, column .. " IS NULL")
+    return builder
+end
+
+-- WHERE IS NOT NULL clause
+function QueryBuilder:where_not_null(column)
+    local builder = self:clone()
+    table.insert(builder.where_conditions, column .. " IS NOT NULL")
+    return builder
+end
+
+-- DISTINCT clause
+function QueryBuilder:distinct()
+    local builder = self:clone()
+    if not builder.select_clause:match("^DISTINCT") then
+        builder.select_clause = "DISTINCT " .. builder.select_clause
+    end
     return builder
 end
 

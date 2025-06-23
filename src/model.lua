@@ -441,12 +441,118 @@ function Model:includes(associations)
     return QueryBuilder.new(self):includes(associations)
 end
 
+function Model:where_in(column, values)
+    return QueryBuilder.new(self):where_in(column, values)
+end
+
+function Model:where_not_in(column, values)
+    return QueryBuilder.new(self):where_not_in(column, values)
+end
+
+function Model:where_between(column, min_value, max_value)
+    return QueryBuilder.new(self):where_between(column, min_value, max_value)
+end
+
+function Model:where_like(column, pattern)
+    return QueryBuilder.new(self):where_like(column, pattern)
+end
+
+function Model:where_null(column)
+    return QueryBuilder.new(self):where_null(column)
+end
+
+function Model:where_not_null(column)
+    return QueryBuilder.new(self):where_not_null(column)
+end
+
+function Model:distinct()
+    return QueryBuilder.new(self):distinct()
+end
+
+function Model:inner_join(table_name, condition)
+    return QueryBuilder.new(self):inner_join(table_name, condition)
+end
+
+function Model:left_join(table_name, condition)
+    return QueryBuilder.new(self):left_join(table_name, condition)
+end
+
 function Model:create(attributes)
     local instance = self:new(attributes)
     if instance:save() then
         return instance
     end
     return nil
+end
+
+-- Bulk insert multiple records
+function Model:insert_all(records)
+    if #records == 0 then
+        return { success = true, inserted_count = 0 }
+    end
+    
+    -- Get all unique columns from all records
+    local all_columns = {}
+    local column_set = {}
+    
+    for _, record in ipairs(records) do
+        for column in pairs(record) do
+            if not column_set[column] then
+                column_set[column] = true
+                table.insert(all_columns, column)
+            end
+        end
+    end
+    
+    -- Build VALUES clauses
+    local value_clauses = {}
+    local all_params = {}
+    
+    for _, record in ipairs(records) do
+        local placeholders = {}
+        for _, column in ipairs(all_columns) do
+            table.insert(placeholders, "?")
+            table.insert(all_params, record[column])
+        end
+        table.insert(value_clauses, "(" .. table.concat(placeholders, ", ") .. ")")
+    end
+    
+    -- Build and execute SQL
+    local sql = "INSERT INTO " .. self.table_name .. " (" .. 
+                table.concat(all_columns, ", ") .. ") VALUES " .. 
+                table.concat(value_clauses, ", ")
+    
+    local result = Database.execute(sql, all_params)
+    
+    return {
+        success = result.success,
+        inserted_count = result.affected_rows,
+        first_id = result.last_insert_id - result.affected_rows + 1,
+        last_id = result.last_insert_id
+    }
+end
+
+-- Create multiple records and return instances
+function Model:create_all(records)
+    local result = self:insert_all(records)
+    
+    if not result.success then
+        return nil
+    end
+    
+    -- Create instances for the inserted records
+    local instances = {}
+    local current_id = result.first_id
+    
+    for _, record_data in ipairs(records) do
+        local instance = self:new(record_data)
+        instance._attributes[self.primary_key] = current_id
+        instance._persisted = true
+        table.insert(instances, instance)
+        current_id = current_id + 1
+    end
+    
+    return instances
 end
 
 -- Raw SQL methods
