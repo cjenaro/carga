@@ -101,6 +101,12 @@ function Database.execute(sql, params)
     
     local stmt = db:prepare(sql)
     if not stmt then
+        -- Always log the failing SQL query for debugging
+        print("❌ SQL Error: " .. db:errmsg())
+        print("🔍 Failed SQL: " .. sql)
+        if #params > 0 then
+            print("📊 Params: " .. table.concat(params, ", "))
+        end
         error("Failed to prepare statement: " .. db:errmsg())
     end
     
@@ -145,6 +151,12 @@ function Database.query(sql, params)
     
     local stmt = db:prepare(sql)
     if not stmt then
+        -- Always log the failing SQL query for debugging
+        print("❌ SQL Error: " .. db:errmsg())
+        print("🔍 Failed SQL: " .. sql)
+        if #params > 0 then
+            print("📊 Params: " .. table.concat(params, ", "))
+        end
         error("Failed to prepare statement: " .. db:errmsg())
     end
     

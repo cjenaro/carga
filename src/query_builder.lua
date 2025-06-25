@@ -171,8 +171,17 @@ end
 -- ORDER BY clause
 function QueryBuilder:order(column, direction)
     local builder = self:clone()
-    direction = direction or "ASC"
-    table.insert(builder.order_clauses, column .. " " .. direction:upper())
+    
+    -- Handle cases like "created_at DESC" or "name ASC"
+    if column:match("%s+") then
+        -- Column already contains direction
+        table.insert(builder.order_clauses, column)
+    else
+        -- Separate column and direction
+        direction = direction or "ASC"
+        table.insert(builder.order_clauses, column .. " " .. direction:upper())
+    end
+    
     return builder
 end
 

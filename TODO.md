@@ -35,7 +35,7 @@
   - [x] `Model:new(attributes)` - build instance
   - [x] `Model:create(attributes)` - create and save
   - [x] `instance:save()` - persist to database
-  - [ ] Bulk insert operations
+  - [ ] `Model:create_all()` - Bulk insert operations
 
 ### Read Operations
 - [x] **Basic Finders**
@@ -56,52 +56,53 @@
   - [x] `instance:update(attributes)` - update and save
   - [x] `instance:save()` - save changes
   - [x] Dirty attribute tracking
-  - [x] Bulk update operations
+  - [ ] `QueryBuilder:update_all()` - Bulk update operations
 
 ### Delete Operations
 - [x] **Instance Deletion**
   - [x] `instance:destroy()` - delete instance
-  - [x] `Model:destroy_all()` - delete all matching
+  - [ ] `QueryBuilder:destroy_all()` - delete all matching
   - [ ] Soft delete support (optional)
   - [ ] Cascade delete handling
 
 ## 🔗 Relationships & Associations
 
 ### Association Types
-- [ ] **belongs_to Associations**
-  - [ ] Foreign key management
-  - [ ] Lazy loading of parent records
-  - [ ] Association caching
+- [x] **belongs_to Associations**
+  - [x] Foreign key management
+  - [x] Lazy loading of parent records
+  - [x] Association caching
   - [ ] Polymorphic belongs_to
 
-- [ ] **has_many Associations**
-  - [ ] Collection loading and caching
-  - [ ] Association proxy methods
+- [x] **has_many Associations**
+  - [x] Collection loading and caching
+  - [x] Association proxy methods
   - [ ] Dependent destroy/nullify options
   - [ ] Through associations (has_many :through)
 
-- [ ] **has_one Associations**
-  - [ ] Single record associations
+- [x] **has_one Associations**
+  - [x] Single record associations
   - [ ] Dependent options
   - [ ] Association building and creation
 
 ### N+1 Query Prevention
-- [ ] **Eager Loading**
-  - [ ] `Model:includes(associations)` - preload associations
-  - [ ] Automatic batching of association queries
+- [x] **Eager Loading**
+  - [x] `Model:includes(associations)` - preload associations
+  - [x] Automatic batching of association queries
   - [ ] Deep association loading (nested includes)
-  - [ ] Smart query optimization
+  - [x] Smart query optimization
 
-- [ ] **Association Caching**
-  - [ ] In-memory association cache
+- [x] **Association Caching**
+  - [x] In-memory association cache
   - [ ] Cache invalidation strategies
-  - [ ] Association proxy objects
+  - [x] Association proxy objects
 
 ## 🔍 Advanced Querying
 
 ### Query Builder Features
-- [ ] **Complex Conditions**
-  - [ ] Raw SQL conditions with parameters
+- [x] **Basic Conditions**
+  - [x] Hash conditions `where({ active = true })`
+  - [x] Raw SQL conditions with parameters `where("age > ?", { 18 })`
   - [ ] OR conditions and grouping
   - [ ] IN, NOT IN, BETWEEN operators
   - [ ] NULL and NOT NULL checks
@@ -112,51 +113,40 @@
   - [ ] Subquery support
   - [ ] Common Table Expressions (CTEs)
 
-- [ ] **Aggregations**
-  - [ ] COUNT, SUM, AVG, MIN, MAX
+- [x] **Basic Aggregations**
+  - [x] COUNT with `Model:count()`
+  - [ ] SUM, AVG, MIN, MAX
   - [ ] GROUP BY with HAVING clauses
   - [ ] Window functions (if SQLite supports)
 
 ### Raw SQL Support
-- [ ] **Raw Query Interface**
-  - [ ] `Model:query(sql, params)` - execute raw SQL
-  - [ ] `Model:execute(sql, params)` - non-SELECT queries
+- [x] **Raw Query Interface**
+  - [x] `Database.query(sql, params)` - execute raw SQL
+  - [x] `Database.execute(sql, params)` - non-SELECT queries
   - [ ] Result mapping to model instances
-  - [ ] Named parameter binding
+  - [x] Positional parameter binding
 
 ## ✅ Validations
 
 ### Built-in Validators
-- [x] **Presence Validation**
-  - [x] Required field validation
-  - [x] Non-empty string validation
-  - [x] Custom presence messages
+- [ ] **Declarative Validations**
+  - [ ] `User.validations = { name = { required = true } }`
+  - [ ] Built-in validator types
+  - [ ] Validation error messages
 
-- [x] **Format Validation**
-  - [x] Email format validation
-  - [ ] URL format validation
-  - [ ] Custom regex patterns
-  - [ ] Phone number formats
+- [x] **Custom Validation Framework**
+  - [x] `Model:validate()` method override
+  - [x] `instance:add_error(field, message)` 
+  - [x] `instance:valid()` and error checking
+  - [x] Manual validation implementation
 
-- [x] **Length Validation**
-  - [x] Minimum and maximum length
-  - [ ] Exact length validation
-  - [ ] Character counting options
-
-- [x] **Numeric Validation**
-  - [x] Type validation (integer, float)
-  - [x] Range validation (min, max)
-  - [ ] Positive/negative validation
-
-- [x] **Uniqueness Validation**
-  - [x] Database-level uniqueness checks
-  - [ ] Scoped uniqueness validation
-  - [ ] Case-sensitive/insensitive options
-
-- [x] **Inclusion/Exclusion**
-  - [x] Value inclusion in list
-  - [ ] Value exclusion from list
-  - [ ] Custom inclusion logic
+- [ ] **Built-in Validator Types** (not implemented)
+  - [ ] Presence validation
+  - [ ] Format validation (email, URL, etc.)
+  - [ ] Length validation (min, max)
+  - [ ] Numeric validation (type, range)
+  - [ ] Uniqueness validation
+  - [ ] Inclusion/exclusion validation
 
 ### Custom Validations
 - [x] **Validation Framework**
@@ -200,22 +190,27 @@
 ## 🗄️ Database Migrations
 
 ### Migration System
-- [ ] **Migration Framework**
+- [ ] **Migration Framework** (not implemented)
   - [ ] Migration file structure and naming
   - [ ] Up and down migration methods
   - [ ] Migration versioning and tracking
 
-- [ ] **Schema Operations**
+- [ ] **Schema Operations** (not implemented)
   - [ ] `create_table()` and `drop_table()`
   - [ ] `add_column()` and `remove_column()`
   - [ ] `add_index()` and `remove_index()`
   - [ ] `rename_table()` and `rename_column()`
 
-- [ ] **Migration Runner**
+- [ ] **Migration Runner** (not implemented)
   - [ ] Pending migration detection
   - [ ] Migration execution and rollback
   - [ ] Migration status tracking
   - [ ] Batch migration operations
+
+- [x] **Manual Schema Management** (current approach)
+  - [x] Raw SQL table creation
+  - [x] Manual index creation
+  - [x] Direct database operations
 
 ### Schema Definition
 - [ ] **Column Types**
