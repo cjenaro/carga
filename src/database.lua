@@ -34,15 +34,36 @@ end
 function Database.connect(database_path)
 	database_path = database_path or config.database_path
 
+	print("🔗 Attempting to connect to database: " .. database_path)
+
 	-- Ensure directory exists
 	local dir = database_path:match("(.+)/[^/]+$")
 	if dir then
 		os.execute("mkdir -p " .. dir)
 	end
 
+	-- Check if database file exists
+	local file = io.open(database_path, "r")
+	if file then
+		file:close()
+		print("✅ Database file exists: " .. database_path)
+	else
+		print("⚠️  Database file does not exist, will be created: " .. database_path)
+	end
+
 	local db, err = sqlite3.open(database_path)
 	if not db then
+		print("❌ Failed to connect to database: " .. database_path)
+		print("❌ Error: " .. tostring(err))
 		error("Failed to connect to database: " .. tostring(err))
+	end
+
+	-- Test the connection
+	local test_result = db:exec("SELECT 1")
+	if test_result ~= sqlite3.OK then
+		print("❌ Database connection test failed")
+		db:close()
+		error("Database connection test failed")
 	end
 
 	-- Configure SQLite for better performance
@@ -55,9 +76,7 @@ function Database.connect(database_path)
 	current_connection = db
 	table.insert(active_connections, db)
 
-	if config.enable_logging then
-		print("🔗 Connected to database: " .. database_path)
-	end
+	print("✅ Successfully connected to database: " .. database_path)
 
 	return db
 end
@@ -65,8 +84,25 @@ end
 -- Get current connection (create if needed)
 function Database.get_connection()
 	if not current_connection then
+		print("⚠️  No database connection found, attempting to connect...")
+		print("🔍 Using database path: " .. config.database_path)
 		Database.connect()
 	end
+
+	-- Verify connection is still valid
+	if current_connection then
+		local test_result = current_connection:exec("SELECT 1")
+		if test_result ~= sqlite3.OK then
+			print("❌ Database connection is invalid, reconnecting...")
+			current_connection = nil
+			Database.connect()
+		end
+	end
+
+	if not current_connection then
+		error("❌ Failed to establish database connection to: " .. config.database_path)
+	end
+
 	return current_connection
 end
 
@@ -263,4 +299,3 @@ function Database.remove_index(index_name)
 end
 
 return Database
-
