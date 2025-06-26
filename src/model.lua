@@ -309,7 +309,8 @@ function Model:create_record()
     local values = {}
     
     for key, value in pairs(self._attributes) do
-        if key ~= self.primary_key or value ~= nil then
+        -- Skip internal fields and primary key if nil
+        if key ~= "_persisted" and (key ~= self.primary_key or value ~= nil) then
             table.insert(columns, key)
             table.insert(placeholders, "?")
             table.insert(values, value)

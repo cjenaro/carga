@@ -131,7 +131,11 @@ function Database.execute(sql, params)
 	if config.enable_logging then
 		print("🔍 SQL: " .. sql)
 		if #params > 0 then
-			print("📊 Params: " .. table.concat(params, ", "))
+			local param_strings = {}
+			for i, param in ipairs(params) do
+				table.insert(param_strings, tostring(param))
+			end
+			print("📊 Params: " .. table.concat(param_strings, ", "))
 		end
 	end
 
