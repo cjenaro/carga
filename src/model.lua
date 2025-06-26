@@ -16,13 +16,15 @@ Model.belongs_to = {}
 Model.has_one = {}
 
 -- Create new model class
-function Model:extend(class_name)
+function Model:extend(class_name, table_name)
     local new_class = setmetatable({}, { __index = self })
     new_class.__index = new_class
     new_class.class_name = class_name
     
-    -- Set default table name (pluralized, lowercase)
-    if not new_class.table_name then
+    -- Set table name - use provided table_name or default to pluralized class_name
+    if table_name then
+        new_class.table_name = table_name
+    elseif not new_class.table_name then
         new_class.table_name = string.lower(class_name) .. "s"
     end
     
