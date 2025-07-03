@@ -1,6 +1,12 @@
 -- Carga - Active Record ORM for Foguete
 -- SQLite-based ORM with Rails-like patterns
 
+---@class Carga
+---@field VERSION string Package version
+---@field Database Database Database operations
+---@field Model Model Base model class
+---@field QueryBuilder QueryBuilder Query builder class
+---@field Migration Migration Migration operations
 local carga = {}
 
 -- Package version
@@ -29,6 +35,8 @@ local config = {
 }
 
 -- Configure carga
+---@param opts table? Configuration options
+---@return nil
 function carga.configure(opts)
     opts = opts or {}
     for k, v in pairs(opts) do
@@ -40,11 +48,14 @@ function carga.configure(opts)
 end
 
 -- Get current configuration
+---@return table config Current configuration
 function carga.get_config()
     return config
 end
 
 -- Initialize database connection
+---@param database_path string? Path to database file
+---@return boolean success Connection success
 function carga.connect(database_path)
     database_path = database_path or config.database_path
     return Database.connect(database_path)
@@ -56,11 +67,17 @@ function carga.disconnect()
 end
 
 -- Execute raw SQL
+---@param sql string SQL query
+---@param params any[]? Query parameters
+---@return table result Query result
 function carga.execute(sql, params)
     return Database.execute(sql, params)
 end
 
 -- Query raw SQL
+---@param sql string SQL query
+---@param params any[]? Query parameters
+---@return table[] rows Query result rows
 function carga.query(sql, params)
     return Database.query(sql, params)
 end

@@ -3,6 +3,24 @@ local Database = require("carga.src.database")
 local QueryBuilder = require("carga.src.query_builder")
 local Associations = require("carga.src.associations")
 
+---@class Model
+---@field table_name string Database table name
+---@field primary_key string Primary key field name (default: "id")
+---@field schema table<string, table> Field schema definitions
+---@field validations table<string, table> Validation rules
+---@field has_many table<string, table> Has many associations
+---@field belongs_to table<string, table> Belongs to associations
+---@field has_one table<string, table> Has one associations
+---@field class_name string Model class name
+---@field validate function? Custom validation method
+---@field before_save function? Called before save operations
+---@field before_create function? Called before create operations
+---@field before_update function? Called before update operations
+---@field before_destroy function? Called before destroy operations
+---@field after_save function? Called after save operations
+---@field after_create function? Called after create operations
+---@field after_update function? Called after update operations
+---@field after_destroy function? Called after destroy operations
 local Model = {}
 Model.__index = Model
 
@@ -15,7 +33,38 @@ Model.has_many = {}
 Model.belongs_to = {}
 Model.has_one = {}
 
+--[[
+Callback Methods (Optional - Define in your model class):
+
+Custom Validation:
+- validate() - Custom validation logic, called during valid()
+
+Lifecycle Callbacks:
+- before_save() - Called before any save operation
+- before_create() - Called before creating new records
+- before_update() - Called before updating existing records  
+- before_destroy() - Called before destroying records
+- after_save() - Called after successful save operations
+- after_create() - Called after successful create operations
+- after_update() - Called after successful update operations
+- after_destroy() - Called after successful destroy operations
+
+Example:
+function MyModel:validate()
+    if self:get_attribute("name") == "invalid" then
+        self:add_error("name", "cannot be 'invalid'")
+    end
+end
+
+function MyModel:before_save()
+    self:set_attribute("updated_at", os.date("%Y-%m-%d %H:%M:%S"))
+end
+--]]
+
 -- Create new model class
+---@param class_name string Name of the model class
+---@param table_name string? Database table name (optional)
+---@return Model model_class New model class that inherits all Model methods
 function Model:extend(class_name, table_name)
 	local new_class = setmetatable({}, { __index = self })
 	new_class.__index = new_class
@@ -35,6 +84,8 @@ function Model:extend(class_name, table_name)
 end
 
 -- Create new model instance
+---@param attributes table? Initial attributes
+---@return table instance New model instance
 function Model:new(attributes)
 	attributes = attributes or {}
 
@@ -120,10 +171,15 @@ function Model:new(attributes)
 end
 
 -- Attribute accessors
+---@param name string Attribute name
+---@return any value Attribute value
 function Model:get_attribute(name)
 	return self._attributes[name]
 end
 
+---@param name string Attribute name
+---@param value any Attribute value
+---@return nil
 function Model:set_attribute(name, value)
 	if not self._attributes then
 		self._attributes = {}
@@ -141,6 +197,9 @@ function Model:set_attribute(name, value)
 end
 
 -- Validation methods
+---@param field string Field name
+---@param message string Error message
+---@return nil
 function Model:add_error(field, message)
 	if not self._errors[field] then
 		self._errors[field] = {}
@@ -148,10 +207,12 @@ function Model:add_error(field, message)
 	table.insert(self._errors[field], message)
 end
 
+---@return nil
 function Model:clear_errors()
 	self._errors = {}
 end
 
+---@return boolean has_errors True if instance has validation errors
 function Model:has_errors()
 	for _ in pairs(self._errors) do
 		return true
@@ -159,10 +220,12 @@ function Model:has_errors()
 	return false
 end
 
+---@return table<string, string[]> errors All validation errors
 function Model:get_errors()
 	return self._errors
 end
 
+---@return boolean valid True if instance passes all validations
 function Model:valid()
 	self:clear_errors()
 
@@ -177,11 +240,13 @@ function Model:valid()
 	return not self:has_errors()
 end
 
+---@return boolean invalid True if instance fails any validations
 function Model:invalid()
 	return not self:valid()
 end
 
 -- Built-in validation runner
+---@return boolean success True if validations pass
 function Model:run_validations()
 	for field, rules in pairs(self.validations or {}) do
 		local value = self:get_attribute(field)
@@ -252,6 +317,7 @@ function Model:run_validations()
 end
 
 -- Persistence methods
+---@return boolean success True if save succeeded
 function Model:save()
 	-- Run callbacks
 	if self.before_save then
@@ -360,6 +426,7 @@ function Model:update_record()
 	return result.success
 end
 
+---@return boolean success True if destroy succeeded
 function Model:destroy()
 	if not self._persisted then
 		return false
@@ -386,6 +453,8 @@ function Model:destroy()
 	return false
 end
 
+---@param attributes table<string, any> Attributes to update
+---@return boolean success True if update succeeded
 function Model:update(attributes)
 	for key, value in pairs(attributes) do
 		self:set_attribute(key, value)
@@ -394,42 +463,66 @@ function Model:update(attributes)
 end
 
 -- Class methods for querying
+---@param self Model Model class (use with : syntax)
+---@return table[] instances All records
 function Model:all()
 	return QueryBuilder.new(self):all()
 end
 
+---@param self Model Model class (use with : syntax)
+---@param conditions table|string WHERE conditions
+---@param params any[]? Parameters for string conditions
+---@return table[] instances Matching records
 function Model:where(conditions, params)
 	return QueryBuilder.new(self):where(conditions, params)
 end
 
+---@param self Model Model class (use with : syntax)
+---@param id number|string Primary key value
+---@return table? instance Found record or nil
 function Model:find(id)
 	return QueryBuilder.new(self):find(id)
 end
 
+---@param self Model Model class (use with : syntax)
+---@param conditions table Find conditions
+---@return table? instance First matching record or nil
 function Model:find_by(conditions)
 	return QueryBuilder.new(self):find_by(conditions)
 end
 
+---@param self Model Model class (use with : syntax)
+---@return table? instance First record or nil
 function Model:first()
 	return QueryBuilder.new(self):first()
 end
 
+---@return table? instance Last record or nil
 function Model:last()
 	return QueryBuilder.new(self):last()
 end
 
+---@param self Model Model class (use with : syntax)
+---@return number count Total record count
 function Model:count()
 	return QueryBuilder.new(self):count()
 end
 
+---@param column string Field to order by
+---@param direction string? "ASC" or "DESC" (default: "ASC")
+---@return table[] instances Ordered records
 function Model:order(column, direction)
 	return QueryBuilder.new(self):order(column, direction)
 end
 
+---@param count number Number of records to limit
+---@return table[] instances Limited records
 function Model:limit(count)
 	return QueryBuilder.new(self):limit(count)
 end
 
+---@param count number Number of records to skip
+---@return table[] instances Records with offset
 function Model:offset(count)
 	return QueryBuilder.new(self):offset(count)
 end
@@ -486,12 +579,16 @@ function Model:left_join(table_name, condition)
 	return QueryBuilder.new(self):left_join(table_name, condition)
 end
 
+---@param self Model Model class (use with : syntax)
+---@param attributes table<string, any> Record attributes
+---@return table? instance Created and saved record or nil if failed
 function Model:create(attributes)
 	local instance = self:new(attributes)
 	if instance:save() then
 		return instance
+	else
+		return nil
 	end
-	return nil
 end
 
 -- Bulk insert multiple records
@@ -588,14 +685,23 @@ function Model:get_model_class(class_name)
 end
 
 -- Association definition methods
+---@param association_name string Association name
+---@param options table? Association options (model, foreign_key, etc.)
+---@return nil
 function Model:belongs_to(association_name, options)
 	Associations.register(self, Associations.BELONGS_TO, association_name, options)
 end
 
+---@param association_name string Association name
+---@param options table? Association options (model, foreign_key, dependent, etc.)
+---@return nil
 function Model:has_many(association_name, options)
 	Associations.register(self, Associations.HAS_MANY, association_name, options)
 end
 
+---@param association_name string Association name
+---@param options table? Association options (model, foreign_key, dependent, etc.)
+---@return nil
 function Model:has_one(association_name, options)
 	Associations.register(self, Associations.HAS_ONE, association_name, options)
 end
@@ -639,4 +745,3 @@ function Model:get_has_one_association(association_name)
 end
 
 return Model
-

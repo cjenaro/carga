@@ -1,6 +1,7 @@
 -- Database connection and query management
 local sqlite3 = require("lsqlite3")
 
+---@class Database
 local Database = {}
 
 -- Configuration
@@ -19,6 +20,8 @@ local active_connections = {}
 local current_connection = nil
 
 -- Configure database
+---@param opts table Configuration options
+---@return nil
 function Database.configure(opts)
 	for k, v in pairs(opts) do
 		config[k] = v
@@ -26,11 +29,14 @@ function Database.configure(opts)
 end
 
 -- Get configuration
+---@return table config Current configuration
 function Database.get_config()
 	return config
 end
 
 -- Connect to database
+---@param database_path string? Path to database file
+---@return boolean success Connection success
 function Database.connect(database_path)
 	database_path = database_path or config.database_path
 
@@ -82,6 +88,7 @@ function Database.connect(database_path)
 end
 
 -- Get current connection (create if needed)
+---@return userdata? connection SQLite connection object or nil
 function Database.get_connection()
 	if not current_connection then
 		print("⚠️  No database connection found, attempting to connect...")
@@ -107,6 +114,7 @@ function Database.get_connection()
 end
 
 -- Close all connections
+---@return boolean success True if disconnection succeeded
 function Database.disconnect()
 	for _, db in ipairs(active_connections) do
 		if db then
@@ -119,9 +127,14 @@ function Database.disconnect()
 	if config.enable_logging then
 		print("🔌 Disconnected from database")
 	end
+
+	return true
 end
 
 -- Execute SQL statement (INSERT, UPDATE, DELETE)
+---@param sql string SQL query
+---@param params any[]? Query parameters
+---@return table result Query result
 function Database.execute(sql, params)
 	local db = Database.get_connection()
 	params = params or {}
@@ -176,6 +189,9 @@ function Database.execute(sql, params)
 end
 
 -- Query SQL statement (SELECT)
+---@param sql string SQL query
+---@param params any[]? Query parameters
+---@return table[] rows Query result rows
 function Database.query(sql, params)
 	local db = Database.get_connection()
 	params = params or {}
@@ -244,6 +260,8 @@ function Database.query(sql, params)
 end
 
 -- Transaction support
+---@param callback function Transaction callback function
+---@return any result Callback return value
 function Database.transaction(callback)
 	local db = Database.get_connection()
 
@@ -261,18 +279,25 @@ function Database.transaction(callback)
 end
 
 -- Check if table exists
+---@param table_name string Table name to check
+---@return boolean exists True if table exists
 function Database.table_exists(table_name)
 	local result = Database.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", { table_name })
 	return result.count > 0
 end
 
 -- Get table schema
+---@param table_name string Table name
+---@return table[] schema Table schema information
 function Database.get_table_schema(table_name)
 	local result = Database.query("PRAGMA table_info(" .. table_name .. ")")
 	return result.rows
 end
 
 -- Create table
+---@param table_name string Table name
+---@param columns table[] Column definitions
+---@return table result Operation result
 function Database.create_table(table_name, columns)
 	local column_defs = {}
 	for name, definition in pairs(columns) do
@@ -284,6 +309,8 @@ function Database.create_table(table_name, columns)
 end
 
 -- Drop table
+---@param table_name string Table name to drop
+---@return table result Operation result
 function Database.drop_table(table_name)
 	local sql = "DROP TABLE IF EXISTS " .. table_name
 	return Database.execute(sql)
